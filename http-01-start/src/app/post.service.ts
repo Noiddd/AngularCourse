@@ -1,10 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map } from 'rxjs/operators';
+import { Subject, throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { Post } from './post.module';
 
 @Injectable({ providedIn: 'root' })
 export class PostService {
+  error = new Subject<string>();
+
   constructor(private http: HttpClient) {}
 
   createAndStorePost(title: string, content: string) {
@@ -15,9 +18,14 @@ export class PostService {
         'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json',
         postData
       )
-      .subscribe((responseData) => {
-        console.log(responseData);
-      });
+      .subscribe(
+        (responseData) => {
+          console.log(responseData);
+        },
+        (error) => {
+          this.error.next(error.message);
+        }
+      );
   }
 
   fetchPosts() {
@@ -34,7 +42,16 @@ export class PostService {
             }
           }
           return postArray;
+        }),
+        catchError((errorRes) => {
+          return throwError(errorRes);
         })
       );
+  }
+
+  deletePosts() {
+    return this.http.delete(
+      'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json'
+    );
   }
 }
