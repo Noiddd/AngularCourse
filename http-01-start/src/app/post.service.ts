@@ -1,7 +1,12 @@
-import { HttpClient } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpEventType,
+  HttpHeaders,
+  HttpParams,
+} from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Subject, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, tap } from 'rxjs/operators';
 import { Post } from './post.module';
 
 @Injectable({ providedIn: 'root' })
@@ -16,11 +21,14 @@ export class PostService {
     this.http
       .post<{ name: string }>(
         'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json',
-        postData
+        postData,
+        {
+          observe: 'response',
+        }
       )
       .subscribe(
         (responseData) => {
-          console.log(responseData);
+          console.log(responseData.body);
         },
         (error) => {
           this.error.next(error.message);
@@ -29,9 +37,18 @@ export class PostService {
   }
 
   fetchPosts() {
+    let searchParams = new HttpParams();
+    searchParams = searchParams.append('print', 'pretty');
+    searchParams = searchParams.append('custome', 'key');
+
     return this.http
       .get<{ [key: string]: Post }>(
-        'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json'
+        'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json',
+        {
+          headers: new HttpHeaders({ 'Custom-Header': 'Hello' }),
+          params: searchParams,
+          responseType: 'json',
+        }
       )
       .pipe(
         map((responseData) => {
@@ -50,8 +67,23 @@ export class PostService {
   }
 
   deletePosts() {
-    return this.http.delete(
-      'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json'
-    );
+    return this.http
+      .delete(
+        'https://angular-http-116c6-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json',
+        {
+          observe: 'events',
+        }
+      )
+      .pipe(
+        tap((event) => {
+          console.log(event);
+          if (event.type == HttpEventType.Sent) {
+            // ...
+          }
+          if (event.type == HttpEventType.Response) {
+            console.log(event.body);
+          }
+        })
+      );
   }
 }
